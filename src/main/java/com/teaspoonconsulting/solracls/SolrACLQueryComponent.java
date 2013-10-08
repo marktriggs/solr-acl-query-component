@@ -53,6 +53,8 @@ public class SolrACLQueryComponent extends QueryComponent
     private static final Logger LOGGER = LoggerFactory.getLogger(SolrACLQueryComponent.class);
     private ConcurrentLRUCache<String, Query> filterCache = null;
 
+    private String principalsParameter = null;
+    private String principalsField = null;
 
     private ConstantScoreQuery buildFilterForPrincipals(final String[] principals)
     {
@@ -68,7 +70,7 @@ public class SolrACLQueryComponent extends QueryComponent
 
                     for (String principal : principals) {
                         try {
-                            DocsEnum td = rdr.termDocsEnum(new Term("readers", principal));
+                            DocsEnum td = rdr.termDocsEnum(new Term(principalsField, principal));
 
                             if (td == null) {
                                 continue;
@@ -100,6 +102,13 @@ public class SolrACLQueryComponent extends QueryComponent
     public void init(NamedList args)
     {
         super.init(args);
+
+        principalsParameter = (String)args.get("principalsParameter");
+        principalsField = (String)args.get("principalsField");
+
+        if (principalsParameter == null || principalsParameter == null) {
+            throw new RuntimeException("Both 'principalsParameter' and 'principalsField' must be set!");
+        }
 
         filterCache = new ConcurrentLRUCache<String, Query>((Integer)args.get("maxCacheEntries"),
                                                             (Integer)args.get("cacheLowWaterMark"));
@@ -139,7 +148,7 @@ public class SolrACLQueryComponent extends QueryComponent
         SolrQueryRequest req = rb.req;
         SolrParams params = req.getParams();
 
-        String principalString = params.get("principals");
+        String principalString = params.get(principalsParameter);
 
         if (principalString != null) {
             String[] principals = principalString.split(", *");
