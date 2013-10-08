@@ -42,9 +42,14 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.OpenBitSet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class SolrACLQueryComponent extends QueryComponent
 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SolrACLQueryComponent.class);
+
     private ConstantScoreQuery buildFilterForPrincipals(final String[] principals)
     {
         Filter f =
@@ -76,10 +81,8 @@ public class SolrACLQueryComponent extends QueryComponent
                         }
                     }
 
-                    System.out.println("\n\nBuilding " + rdr.maxDoc() + "-bit filter for segment [" + rdr +
-                                       "] took: " +
-                                       (System.currentTimeMillis() - start) +
-                                       " msecs");
+                    LOGGER.info("Building {}-bit filter for segment [{}]" + rdr + "] took {} milliseconds",
+                                new Object[] { rdr.maxDoc(), rdr, (System.currentTimeMillis() - start)});
 
                     return bits;
                 }
