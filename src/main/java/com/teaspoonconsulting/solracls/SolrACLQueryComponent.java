@@ -29,9 +29,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.io.IOException;
 
+import org.apache.lucene.index.AtomicReader;
+import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.DocsEnum;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.SegmentReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.CachingWrapperFilter;
 import org.apache.lucene.search.ConstantScoreQuery;
@@ -39,7 +39,7 @@ import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.OpenBitSet;
 
 
@@ -48,28 +48,27 @@ public class SolrACLQueryComponent extends QueryComponent
     private ConstantScoreQuery buildFilterForPrincipals(final String[] principals)
     {
         Filter f =
-            new Filter () {
-                public DocIdSet
-                    getDocIdSet (IndexReader.AtomicReaderContext context)
+            new Filter ()
+            {
+                public DocIdSet getDocIdSet (AtomicReaderContext context, Bits acceptDocs)
                 {
                     long start = System.currentTimeMillis();
 
-                    IndexReader rdr = context.reader;
+                    AtomicReader rdr = context.reader();
                     OpenBitSet bits = new OpenBitSet(rdr.maxDoc());
 
                     for (String principal : principals) {
                         try {
-                            DocsEnum td =
-                                rdr.termDocsEnum(null,
-                                                 "readers",
-                                                 new BytesRef(principal));
+                            DocsEnum td = rdr.termDocsEnum(new Term("readers", principal));
 
                             if (td == null) {
                                 continue;
                             }
 
                             while (td.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                bits.set(td.docID());
+                                if (acceptDocs == null || acceptDocs.get(td.docID())) {
+                                    bits.set(td.docID());
+                                }
                             }
 
                         } catch (IOException e) {
