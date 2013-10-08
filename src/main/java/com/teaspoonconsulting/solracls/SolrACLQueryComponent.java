@@ -101,8 +101,8 @@ public class SolrACLQueryComponent extends QueryComponent
     {
         super.init(args);
 
-        // FIXME: move these numbers into config
-        filterCache = new ConcurrentLRUCache<String, Query>(512, 32);
+        filterCache = new ConcurrentLRUCache<String, Query>((Integer)args.get("maxCacheEntries"),
+                                                            (Integer)args.get("cacheLowWaterMark"));
     }
 
 
