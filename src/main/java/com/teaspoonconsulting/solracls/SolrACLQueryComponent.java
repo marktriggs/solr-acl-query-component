@@ -22,6 +22,8 @@ import org.apache.solr.handler.component.ResponseBuilder;
 
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.common.util.NamedList;
+import org.apache.solr.util.ConcurrentLRUCache;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -49,6 +51,8 @@ import org.slf4j.LoggerFactory;
 public class SolrACLQueryComponent extends QueryComponent
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(SolrACLQueryComponent.class);
+    private ConcurrentLRUCache<String, Query> filterCache = null;
+
 
     private ConstantScoreQuery buildFilterForPrincipals(final String[] principals)
     {
@@ -92,7 +96,41 @@ public class SolrACLQueryComponent extends QueryComponent
     }
 
 
-    private HashMap<String, Query> memoryLeak = new HashMap<String, Query>();
+    @Override
+    public void init(NamedList args)
+    {
+        super.init(args);
+
+        // FIXME: move these numbers into config
+        filterCache = new ConcurrentLRUCache<String, Query>(512, 32);
+    }
+
+
+    @Override
+    public NamedList getStatistics()
+    {
+        NamedList result = super.getStatistics();
+
+        if (filterCache == null) {
+            return result;
+        }
+
+        if (result == null) {
+            result = new NamedList();
+        }
+
+        ConcurrentLRUCache.Stats stats = filterCache.getStats();
+
+        result.add("ACLFilterCacheCumulativeEvictions", String.valueOf(stats.getCumulativeEvictions()));
+        result.add("ACLFilterCacheCumulativeHits", String.valueOf(stats.getCumulativeHits()));
+        result.add("ACLFilterCacheCumulativeLookups", String.valueOf(stats.getCumulativeLookups()));
+        result.add("ACLFilterCacheCumulativeMisses", String.valueOf(stats.getCumulativeMisses()));
+        result.add("ACLFilterCacheCumulativeNonLivePuts", String.valueOf(stats.getCumulativeNonLivePuts()));
+        result.add("ACLFilterCacheCumulativePuts", String.valueOf(stats.getCumulativePuts()));
+        result.add("ACLFilterCacheCurrentSize", String.valueOf(stats.getCurrentSize()));
+
+        return result;
+    }
 
 
     @Override
@@ -108,11 +146,11 @@ public class SolrACLQueryComponent extends QueryComponent
             Arrays.sort(principals);
 
             String key = Arrays.toString(principals);
-            Query f = memoryLeak.get(key);
+            Query f = filterCache.get(key);
 
             if (f == null) {
                 f = buildFilterForPrincipals(principals);
-                memoryLeak.put(key, f);
+                filterCache.put(key, f);
             }
 
             List<Query> filters = rb.getFilters();
