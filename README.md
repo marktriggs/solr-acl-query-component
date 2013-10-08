@@ -45,3 +45,22 @@ The parameters are as follows:
   * **cacheLowWaterMark** -- When the cache fills up, the
     least recently used entries will be discarded until the cache has
     this many entries remaining.
+
+
+# Statistics
+
+This query component reports some statistics to help monitor the
+sizing of its internal cache.  You can find these by browsing to your
+Solr console:
+
+     http://localhost:8983/solr/
+  
+Then:
+
+  * Select your Solr core
+
+  * Click `Plugins / Stats`
+  
+  * Select `OTHER`
+  
+  * Expand `query`
