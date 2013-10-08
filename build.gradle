@@ -1,0 +1,12 @@
+apply plugin: 'java'
+
+repositories {
+  mavenCentral()
+  maven {
+    url "http://maven.restlet.org/"
+  }
+}
+
+dependencies {
+  compile group: 'org.apache.solr', name: 'solr-core', version: '4.3.0'
+}
